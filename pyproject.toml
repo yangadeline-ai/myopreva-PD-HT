@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "filmcut"
+version = "0.1.0"
+description = "Lay out spectacle frame lens shapes on MyoPREVA film sheets, decentred for the wearer's PD and fitting height, and write cutter files (SVG, DXF, PLT)"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "omaconvert @ git+https://github.com/yangadeline-ai/Converting-OMA-files@claude/oma-to-plt-svg-converter-5rr2fd",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+filmcut = "filmcut.cli:main"
+
+[tool.setuptools]
+packages = ["filmcut"]
+
+[tool.setuptools.package-data]
+filmcut = ["data/*.json", "data/traces/*", "static/*"]

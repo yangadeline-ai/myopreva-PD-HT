@@ -1,0 +1,100 @@
+{
+  "_comment": "Frame catalogue. Each model uses a built-in shape (wayfarer, square, panto, p3, oval, rectangle, round) or a traced file (\"file\": path to .oma/.svg/.plt, relative to this JSON). eye = A (mm), bridge = DBL (mm), height = B (mm, optional), temple (mm) is informational.",
+  "frames": [
+    {
+      "id": "generic-wayfarer-52-18",
+      "brand": "Generic",
+      "model": "Wayfarer",
+      "shape": "wayfarer",
+      "eye": 52,
+      "bridge": 18,
+      "temple": 140,
+      "height": 40.9
+    },
+    {
+      "id": "generic-wayfarer-54-18",
+      "brand": "Generic",
+      "model": "Wayfarer",
+      "shape": "wayfarer",
+      "eye": 54,
+      "bridge": 18,
+      "temple": 145,
+      "height": 42.4
+    },
+    {
+      "id": "generic-square-52-18",
+      "brand": "Generic",
+      "model": "Square",
+      "shape": "square",
+      "eye": 52,
+      "bridge": 18,
+      "temple": 140,
+      "height": 36.2
+    },
+    {
+      "id": "generic-square-55-17",
+      "brand": "Generic",
+      "model": "Square",
+      "shape": "square",
+      "eye": 55,
+      "bridge": 17,
+      "temple": 145,
+      "height": 38.3
+    },
+    {
+      "id": "generic-panto-50-20",
+      "brand": "Generic",
+      "model": "Panto",
+      "shape": "panto",
+      "eye": 50,
+      "bridge": 20,
+      "temple": 140,
+      "height": 36.1
+    },
+    {
+      "id": "generic-p3-48-20",
+      "brand": "Generic",
+      "model": "P3 Round",
+      "shape": "p3",
+      "eye": 48,
+      "bridge": 20,
+      "temple": 140,
+      "height": 41.1
+    },
+    {
+      "id": "generic-round-46-21",
+      "brand": "Generic",
+      "model": "Round",
+      "shape": "round",
+      "eye": 46,
+      "bridge": 21,
+      "temple": 140
+    },
+    {
+      "id": "generic-oval-50-19",
+      "brand": "Generic",
+      "model": "Oval",
+      "shape": "oval",
+      "eye": 50,
+      "bridge": 19,
+      "temple": 140
+    },
+    {
+      "id": "generic-rectangle-54-17",
+      "brand": "Generic",
+      "model": "Rectangle",
+      "shape": "rectangle",
+      "eye": 54,
+      "bridge": 17,
+      "temple": 145
+    },
+    {
+      "id": "traced-146987",
+      "brand": "Traced",
+      "model": "Job 146987",
+      "file": "traces/146987.OMA",
+      "eye": 54.39,
+      "bridge": 16.99
+    }
+  ]
+}
