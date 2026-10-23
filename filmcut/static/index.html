@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyoPREVA film cutter</title>
+<style>
+  :root { --bg:#222; --fg:#eee; --line:#f2c14e; --accent:#9ecae1; --muted:#aaa; --err:#ff8a80; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family: ui-monospace, Menlo, Consolas, monospace; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; display:grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 24px; }
+  @media (max-width: 760px) { main { grid-template-columns: 1fr; } }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  h2 { font-size: 13px; font-weight: normal; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .04em; }
+  label.cap { display:block; font-size: 12px; color: var(--muted); text-align:center; margin-top:4px; }
+  .row { display:grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; }
+  input, select { width:100%; background:transparent; color:var(--fg); border:1px solid var(--line); border-radius:3px; padding:9px 10px; font:inherit; text-align:center; }
+  input[type=search], select { text-align:left; }
+  input[type=file] { border-style: dashed; text-align:left; font-size:12px; }
+  .lr { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .lr .hd { text-align:center; font-size:13px; margin-bottom:6px; }
+  #results { list-style:none; margin:4px 0 0; padding:0; max-height:160px; overflow:auto; border:1px solid #444; display:none; }
+  #results li { padding:6px 10px; cursor:pointer; font-size:13px; }
+  #results li:hover, #results li.sel { background:#333; color:var(--line); }
+  .or { color:var(--muted); font-size:12px; margin:10px 0 4px; }
+  details { margin-top: 20px; font-size: 13px; }
+  details .row { margin-top: 8px; }
+  button { margin-top: 24px; width:100%; background:transparent; color:var(--fg); border:1px solid var(--fg); padding:10px; font:inherit; cursor:pointer; }
+  button:hover { color:var(--line); border-color:var(--line); }
+  #preview svg { width:100%; height:auto; display:block; border-radius:4px; }
+  #report { white-space: pre-wrap; font-size: 12px; color: var(--accent); }
+  .warn { color: var(--err); font-size: 13px; }
+  .dl a { display:inline-block; margin: 8px 8px 0 0; color: var(--line); }
+  .muted { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+<form id="f" autocomplete="off">
+  <h1>MyoPREVA film cutter</h1>
+
+  <h2>Frame model *</h2>
+  <input type="search" id="q" placeholder="Search brand or model...">
+  <ul id="results"></ul>
+  <div class="or">or a built-in shape</div>
+  <select id="shape"><option value="">(none)</option></select>
+  <div class="or">or a traced shape from the scanner (.oma, .svg, .plt)</div>
+  <input type="file" id="file" accept=".oma,.OMA,.svg,.plt,.hpgl">
+
+  <h2>Frame size</h2>
+  <div class="row">
+    <div><input id="eye" inputmode="decimal" placeholder="mm"><label class="cap">Eye</label></div>
+    <div><input id="bridge" inputmode="decimal" placeholder="mm"><label class="cap">Bridge</label></div>
+    <div><input id="temple" inputmode="decimal" placeholder="mm"><label class="cap">Temple</label></div>
+  </div>
+  <p class="muted">Eye and bridge set the frame PD (eye + bridge). A traced file uses its own size unless you fill these in.</p>
+
+  <h2>Monocular PD *</h2>
+  <div class="lr">
+    <div><div class="hd">RIGHT (R)</div><input id="pd_right" inputmode="decimal" value="32.0" required></div>
+    <div><div class="hd">LEFT (L)</div><input id="pd_left" inputmode="decimal" value="32.0" required></div>
+  </div>
+
+  <h2>Fitting height *</h2>
+  <div class="lr">
+    <div><div class="hd">RIGHT (R)</div><input id="height_right" inputmode="decimal" value="18.0" required></div>
+    <div><div class="hd">LEFT (L)</div><input id="height_left" inputmode="decimal" value="18.5" required></div>
+  </div>
+
+  <details>
+    <summary>Advanced</summary>
+    <div class="row">
+      <div><input id="lens_height" inputmode="decimal" placeholder="auto"><label class="cap">Lens height B</label></div>
+      <div><input id="frame_pd" inputmode="decimal" placeholder="eye+bridge"><label class="cap">Frame PD</label></div>
+      <div><input id="frame_height" inputmode="decimal" placeholder="B / 2"><label class="cap">Frame height</label></div>
+      <div><input id="cut_offset" inputmode="decimal" value="0"><label class="cap">Cut offset</label></div>
+    </div>
+    <div class="row">
+      <div><select id="view"><option value="wearer">Wearer view (L on left)</option><option value="front">Front view (R on left)</option></select><label class="cap">Sheet view</label></div>
+      <div><select id="file_side"><option value="R">Right lens</option><option value="L">Left lens</option></select><label class="cap">Single traced lens is</label></div>
+    </div>
+  </details>
+
+  <button type="submit">[ Continue &rarr; ]</button>
+</form>
+
+<section>
+  <div id="preview"><p class="muted">The film sheet preview appears here.</p></div>
+  <div id="warnings"></div>
+  <div class="dl" id="downloads"></div>
+  <div id="report"></div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let frameId = "", fileUpload = null, frames = [];
+
+async function search(q) {
+  const r = await fetch("/api/frames?q=" + encodeURIComponent(q));
+  const data = await r.json();
+  frames = data.frames;
+  if (!$("shape").options.length || $("shape").options.length === 1) {
+    data.shapes.forEach(s => $("shape").add(new Option(s, s)));
+  }
+  const ul = $("results");
+  ul.innerHTML = "";
+  frames.forEach(f => {
+    const li = document.createElement("li");
+    li.textContent = f.label;
+    if (f.id === frameId) li.className = "sel";
+    li.onclick = () => pick(f);
+    ul.appendChild(li);
+  });
+  ul.style.display = frames.length ? "block" : "none";
+}
+
+function pick(f) {
+  frameId = f.id; $("q").value = f.label; $("shape").value = ""; $("file").value = ""; fileUpload = null;
+  $("eye").value = f.eye ?? ""; $("bridge").value = f.bridge ?? ""; $("temple").value = f.temple ?? "";
+  $("lens_height").value = "";
+  search($("q").value);
+}
+
+$("q").addEventListener("input", e => { frameId = ""; search(e.target.value); });
+$("shape").addEventListener("change", () => { if ($("shape").value) { frameId = ""; $("q").value = ""; $("file").value = ""; fileUpload = null; } });
+$("file").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f) { fileUpload = null; return; }
+  const buf = await f.arrayBuffer();
+  // .OMA files are latin-1 text; decoding as latin-1 is lossless for SVG/PLT ASCII too
+  fileUpload = { name: f.name, text: new TextDecoder("latin1").decode(buf) };
+  frameId = ""; $("q").value = ""; $("shape").value = "";
+  $("eye").value = ""; $("bridge").value = ""; $("temple").value = "";
+});
+
+$("f").addEventListener("submit", async e => {
+  e.preventDefault();
+  const req = { frame_id: frameId, shape: $("shape").value, file: fileUpload };
+  ["eye","bridge","lens_height","pd_right","pd_left","height_right","height_left",
+   "frame_pd","frame_height","cut_offset","view","file_side"].forEach(k => req[k] = $(k).value.trim());
+  if (fileUpload) delete req.eye;  // traced shapes keep their own A
+  const r = await fetch("/api/design", { method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(req) });
+  const data = await r.json();
+  $("warnings").innerHTML = ""; $("downloads").innerHTML = ""; $("report").textContent = "";
+  if (!r.ok) { $("warnings").innerHTML = `<p class="warn">${data.error}</p>`; return; }
+  $("preview").innerHTML = data.files["preview.svg"].replace(/^<\?xml[^>]*>/, "");
+  $("warnings").innerHTML = data.warnings.map(w => `<p class="warn">&#9888; ${w}</p>`).join("");
+  $("report").textContent = data.report;
+  const stem = (data.frame.name || "frame").replace(/[^\w.-]+/g, "_");
+  const types = {"cut.svg": "image/svg+xml", "preview.svg": "image/svg+xml", "dxf": "application/dxf", "plt": "application/vnd.hp-hpgl"};
+  Object.entries(data.files).forEach(([ext, text]) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type: types[ext]}));
+    a.download = `${stem}.${ext}`;
+    a.textContent = `Download ${ext}`;
+    $("downloads").appendChild(a);
+  });
+});
+
+search("");
+</script>
+</body>
+</html>
